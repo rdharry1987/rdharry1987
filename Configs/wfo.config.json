@@ -1,0 +1,18 @@
+{
+  "dataFolder": "../Data/opt_csv/",
+  "trainDays": 90,
+  "testDays": 30,
+  "rolling": true,
+  "objective": "MAR",
+  "selection": "TopK",
+  "k": 5,
+  "oosReport": "../Reports/wfo_report.md",
+  "jsonOut": "../Reports/wfo_summary.json",
+  "risk": {
+    "enableVaR": true,
+    "lambda": 0.94,
+    "ddDaily": 0.02,
+    "ddWeekly": 0.08,
+    "ddTotal": 0.25
+  }
+}
