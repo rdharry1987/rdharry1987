@@ -1,49 +1,57 @@
-# 👋 Hi, I’m @rdharry1987 (Ryan)
+# Walk-Forward Optimization (WFO) Harness — Usage
 
-## 🛡️ Mission
-I'm documenting and exposing systemic healthcare failures in Manitoba’s drug coverage programs — particularly concerning adjudication failures in the **Home Cancer Drug Program (HCDP)** and misuse of the **Drug Programs Information Network (DPIN)**.
+> Goal: Select *robust* parameters via rolling train→test segments using cTrader's exported Optimization CSVs.
 
-This repository exists to centralize:
-- 📄 Legal documents, FOI records, and policies
-- 🧮 Evidence timelines and financial data
-- 🧑‍⚖️ Statutory obligations under Manitoba health law
-- 🛠️ Tools for patients, advocates, and investigators
+## 0) Build
 
----
+```
+cd Harness
+dotnet build -c Release
+```
 
-## 👀 I’m interested in:
-- Transparency in public health systems
-- Accountability in pharmacare adjudication
-- Tools to simplify regulatory access and FOI analysis
-- Open-source frameworks for whistleblowers
+## 1) Prepare data
 
-## 🌱 I’m currently learning:
-- GitHub for legal/health policy documentation
-- YAML + Markdown for public data structuring
-- Open access audit chains & verifiable hash proofs
+1. In cTrader Automate, **optimize** your bot for a *training* window.
+2. After the optimization completes, **Export** results to CSV (e.g., `train_2023-01-01_2023-03-31.csv`).
+3. Repeat for each rolling window. Name files consistently.
 
-## 💬 I’m looking to collaborate on:
-- GitHub-native **legal record repositories**
-- 🔍 Transparency tools for tracking public health obligations
-- 📢 Media or legal actions that require solid evidence kits
+> The harness autodetects column names for metrics and parameters. Common columns:
+> `NetProfit`, `GrossProfit`, `MaxEquityDrawdown`, `SharpeRatio`, `Trades`, `PF`, `SQN`, and any `Parameter.*` columns.
 
-## 📫 How to reach me:
-- Encrypted email available on request (PGP/Proton)
-- File submission by pull request or secure message
+## 2) Configure
 
-## 😄 Pronouns:
-He/him
+Edit `Configs/wfo.config.json`:
 
-## ⚡ Fun fact:
-One wrong adjudication code = $28,000 out-of-pocket.
-We’re not letting that happen in silence anymore.
+- `dataFolder`: directory with your exported CSVs
+- `trainDays` / `testDays`: window sizes (days)
+- `objective`: e.g., `Sharpe`, `MAR`, `ReturnDD`, `NetProfit` (see below)
+- `selection`: `TopK` or `Pareto`
+- `k`: only for `TopK`
+- `risk`: optional overlay (VaR cap, DD guard)
+- `oosReport`: output path (.md)
 
----
+## 3) Run
 
-> “This repo exists so no one else has to piece it together alone.”
+```
+cd Harness
+./bin/Release/net8.0/WfoHarness \
+  --config ../Configs/wfo.config.json
+```
 
-> 📁 **Main Repository Branches:**
-> - `/evidence-kit/` → Official docs, policies, FOIs
-> - `/submissions/` → Letters to RCMP, AG, Ombudsman
-> - `/adjudication-errors/` → DPIN failure cases
-> - `/tools/` → Hash verifiers, FOI templates, scripts
+## 4) Output
+
+- `wfo_report.md` — segment-by-segment OOS performance, parameter stability, and chosen params.
+- `wfo_summary.json` — machine-readable results.
+
+## Objectives
+
+- `Sharpe`: mean/vol / sqrt(252)
+- `MAR`: CAGR / MaxDD (uses drawdown from CSV if present)
+- `ReturnDD`: NetProfit / MaxDD
+- `NetProfit`: raw net
+
+## Tips
+
+- Keep training windows long enough to avoid overfit (at least 3–6 months for intraday FX).
+- Prefer **rolling** over **anchored** windows unless regime anchoring is intentional.
+- Pair with conservative risk overlay (VaR cap, multi-horizon DD guard).
